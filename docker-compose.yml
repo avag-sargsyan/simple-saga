@@ -1,0 +1,36 @@
+version: '3'
+services:
+  server:
+    image: golang:1.21
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - googlecloud
+    volumes:
+      - .:/app
+      - $GOPATH/pkg/mod:/go/pkg/mod
+    working_dir: /app
+    environment:
+      PUBSUB_EMULATOR_HOST: googlecloud:8085
+    command: go run main.go
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  googlecloud:
+    image: google/cloud-sdk:228.0.0
+    logging:
+      driver: none
+    entrypoint: gcloud --quiet beta emulators pubsub start --host-port=0.0.0.0:8085 --verbosity=debug --log-http
+    ports:
+      - 8085:8085
+    environment:
+      PUBSUB_EMULATOR_HOST: googlecloud:8085
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
